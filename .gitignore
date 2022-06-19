@@ -1,0 +1,7 @@
+week1_626/raw-img
+week1_626/train_img
+week1_626/test_img
+
+.DS_Store
+*/.DS_Store
+*__pycache__
