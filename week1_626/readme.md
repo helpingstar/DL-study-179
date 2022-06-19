@@ -4,8 +4,8 @@
 URL:
 https://www.kaggle.com/datasets/alessiocorrado99/animals10
 
-1. 위 URL에서 animal dataset을 다운로드한다.
-2. 폴더 안에 아래 구조 처럼 "raw-img" 폴더를 추가한다.
+1. 위 URL에서 animal dataset을 다운로드하고 압축해제한다.
+2. 폴더 안에 아래 구조 처럼 "raw-img" 폴더만 추가한다. (translate.py 파일은 들고 올 필요 없습니다)
 
 ```
 week1_626
