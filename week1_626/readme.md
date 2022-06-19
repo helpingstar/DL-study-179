@@ -18,10 +18,10 @@ week1_626
 ├── split.py
 └── translate.py
 ``` 
-3. cv2 설치
+3. cv2, numpy 설치
 
 ``` 
-pip install opencv-python
+pip install opencv-python, numpy
 ``` 
 4. split.py 실행
 

@@ -2,7 +2,29 @@ import os
 from translate import translate
 import random
 import cv2
+import numpy as np
 
+
+def image_resize(img):
+    if(img.shape[0] > img.shape[1]):
+        tile_size = (int(img.shape[1]*256/img.shape[0]), 256)
+    else:
+        tile_size = (256, int(img.shape[0]*256/img.shape[1]))
+
+    #centering
+    img = cv2.resize(img, dsize=tile_size)
+    
+    size = [256,256]
+    
+    img_size = img.shape[:2]
+    
+    # centering
+    row = (size[1] - img_size[0]) // 2
+    col = (size[0] - img_size[1]) // 2
+    resized = np.zeros(list(size) + [img.shape[2]], dtype=np.uint8)
+    resized[row:(row + img.shape[0]), col:(col + img.shape[1])] = img
+
+    return resized
 
 def save_img(save_path, folder_name, image_list):
     new_name = translate[folder_name]
@@ -13,7 +35,7 @@ def save_img(save_path, folder_name, image_list):
     
     for i, image in enumerate(image_list):
         img = cv2.imread(image)
-        
+        img = image_resize(img)
         image_path = os.path.join(folder_path, new_name + "_" + str(i) + ".jpg")
         cv2.imwrite(image_path, img)
 
