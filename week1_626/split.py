@@ -1,6 +1,4 @@
 import os
-
-from numpy import source
 from translate import translate
 import random
 import cv2
