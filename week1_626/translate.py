@@ -6,16 +6,17 @@ translate = {
     "gallina": "chicken", 
     "gatto": "cat", 
     "mucca": "cow", 
-    "pecora": "sheep",
-    "ragno" : "spider", 
+    "pecora": "sheep", 
+    "ragno": "spider",
     "scoiattolo": "squirrel", 
     "dog": "cane", 
-    "cavallo": "horse", 
+    "horse": "cavallo", 
     "elephant" : "elefante", 
     "butterfly": "farfalla", 
     "chicken": "gallina", 
     "cat": "gatto", 
     "cow": "mucca", 
+    "sheep": "pecora",
     "spider": "ragno", 
     "squirrel": "scoiattolo"
-}
+    }
