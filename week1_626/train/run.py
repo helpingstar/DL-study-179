@@ -1,7 +1,8 @@
-from cv2 import magnitude
+from inspect import ArgSpec
 import torch
-import torchvision
 import torchsummary
+import neptune.new as neptune
+import argparse
 
 from torch.utils.data import DataLoader
 from dataset import CustomDataset
@@ -10,10 +11,13 @@ from train.model.simple_cnn import CNN
 from train.manager import Manager
 
 CFG = {
+    "save_path" : "./saved",
+    "model_name" : "resnet",
+    
     "train_image_path" : "../train_img",
     "test_image_path" : "../test_img",
 
-    "train_batch_size" : 256,
+    "train_batch_size" : 32,
     "test_batch_size" : 1,
     
     "learning_rate" : 1e-4,
@@ -22,8 +26,20 @@ CFG = {
 }
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--enable_log", action='store_true')
+    args = parser.parse_args()
+    
+    neptune_instance = None
+    if args.enable_log:
+        neptune_instance = neptune.init(
+            project="hsh-dev/dl-study",
+            api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJjZDNlMTkxZS0wOTE4LTRhYzUtODUzNS1hNGUyOTkzMTU0MjgifQ==",
+        )
+    
+    
     # Device Initialize
-    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
     
     # Dataset Initialize
     dataloader = {}
@@ -37,12 +53,13 @@ if __name__ == "__main__":
     dataloader["test"] = DataLoader(test_dataset, batch_size = CFG["test_batch_size"], shuffle=False, num_workers=0)
 
     # Model Import
-    # model = ResNet50()
-    model = CNN()
+    model = ResNet50()
+    # model = CNN()
+    model.to(device)
     
     torchsummary.summary(model, (3, 256, 256), batch_size = 16)
 
-    manager = Manager(model, dataloader, device, CFG)
+    manager = Manager(model, dataloader, device, CFG, neptune_instance)
     manager.train()
     
                 

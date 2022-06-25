@@ -4,14 +4,25 @@ sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from sklearn.utils import shuffle
 from torch.utils.data import Dataset
 from torchvision import transforms
+import albumentations as A
+from albumentations.pytorch import ToTensorV2    
+import torch
 
 from class_number import CLASS_NUMBER
 
-image_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Resize((256, 256))
-            ])
+train_transform = A.Compose([
+                            A.RandomBrightnessContrast(brightness_limit = 0.3, contrast_limit = 0.3, p=0.5),
+                            A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=180, p=0.5),
+                            A.ColorJitter(brightness=0, contrast=0, saturation=0.1, hue=0.1, always_apply=False, p=0.5),
+                            A.GaussNoise(var_limit = (0.0, 0.05), p=0.5),
+                            A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
+                            ToTensorV2()
+                            ])
 
+test_transform = A.Compose([
+                            A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
+                            ToTensorV2()
+                            ])
 
 class CustomDataset(Dataset):
     def __init__(self, base_path, type):
@@ -113,9 +124,13 @@ class CustomDataset(Dataset):
         img_path = dataset["path"][index]
         
         label = dataset["label"][index]
-        image = cv2.imread(img_path)
-        image = image_transform(image)
-        
+        images = cv2.imread(img_path)
+        if self.type == "train":
+            transformed = train_transform(image = images)
+            image = transformed["image"]
+        else:
+            transformed = test_transform(image = images)
+            image = transformed["image"]
         return image, label
 
 
