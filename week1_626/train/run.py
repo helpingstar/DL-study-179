@@ -7,6 +7,7 @@ import argparse
 from torch.utils.data import DataLoader
 from dataset import CustomDataset
 from train.model.resnet import ResNet50
+from train.model.seresnet import SEResNet50
 from train.model.simple_cnn import CNN
 from train.manager import Manager
 
@@ -54,6 +55,7 @@ if __name__ == "__main__":
 
     # Model Import
     model = ResNet50()
+    # model = SEResNet50()
     # model = CNN()
     model.to(device)
     
