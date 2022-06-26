@@ -54,7 +54,7 @@ class ResNet(nn.Module):
                 nn.Linear(64, 10)
         )
 
-        self.output = nn.Softmax(dim=0)
+        self.output = nn.Softmax(dim=1)
 
     def make_layer(self, block, out_channels, num_blocks, stride):
         layers = []

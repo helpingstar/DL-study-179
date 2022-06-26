@@ -100,6 +100,13 @@ class CustomDataset(Dataset):
             for class_name in data_collection:
                 test_img_path = data_collection[class_name]
                 test_label = [CLASS_NUMBER[class_name]] * len(test_img_path)
+                
+                one_hot_vector = np.zeros((1, 10), dtype=np.int32)
+                one_hot_vector[0][CLASS_NUMBER[class_name]] = 1
+                
+                test_label = np.empty((0,10), dtype=np.int32)
+                for i in range(len(test_img_path)):
+                    test_label = np.append(test_label, one_hot_vector, axis = 0)
 
                 self.testset["path"].extend(test_img_path)
                 self.testset["label"].extend(test_label)
