@@ -219,7 +219,7 @@ class Manager():
         # prec_avg = precision_score(label_list, output_list, average = 'macro')
         # rec_avg = recall_score(label_list, output_list, average = 'macro')
         
-        f1_total = precision_score(label_list, output_list, average = 'macro')
+        f1_total = f1_score(label_list, output_list, average = 'macro')
         f1_s = f1_score(label_list, output_list, average=None)
         
         print("=== F1 Score List ===")

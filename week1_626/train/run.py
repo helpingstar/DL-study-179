@@ -18,7 +18,7 @@ CFG = {
     "train_image_path" : "../train_img",
     "test_image_path" : "../test_img",
 
-    "train_batch_size" : 2,
+    "train_batch_size" : 32,
     "test_batch_size" : 1,
     
     "learning_rate" : 1e-4,
