@@ -5,3 +5,5 @@ week1_626/test_img
 .DS_Store
 */.DS_Store
 *__pycache__
+*.neptune
+*.pt
