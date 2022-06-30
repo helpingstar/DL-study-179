@@ -130,6 +130,8 @@ class Manager():
         print("F1_Score : {} | Loss : {} ".format(round(f1_score, 5), round(loss, 5)))
 
         if self.enable_log:
+            lr = self.scheduler.get_lr()
+            self.neptune["learning_rate"].log(lr)
             self.neptune["train/f1_score"].log(f1_score)
             self.neptune["train/loss"].log(loss)
         
@@ -234,31 +236,22 @@ class Manager():
         for class_name in CLASS_NUMBER:
             class_list.append(class_name)
         
-        acc_total = accuracy_score(label_list, output_list, average = 'macro')
-        acc = accuracy_score(label_list, output_list, average = None)
-        
+        # acc = accuracy_score(label_list, output_list, average = None)
         prec = precision_score(label_list, output_list, average = None)
         rec = recall_score(label_list, output_list, average = None)
         
-        print("=== Accuracy List ===")
-        for i, class_ in enumerate(class_list):
-            print("{} | {}".format(class_, round(acc[i], 5)))
-            
-        print("=== Precision List ===")
-        for i, class_ in enumerate(class_list):
-            print("{} | {}".format(class_, round(prec[i], 5)))
-            
-        print("=== Recall List ===")
-        for i, class_ in enumerate(class_list):
-            print("{} | {}".format(class_, round(rec[i], 5)))    
-             
         f1_total = f1_score(label_list, output_list, average = 'macro')
         f1_s = f1_score(label_list, output_list, average=None)
         
-        print("=== F1 Score List ===")
+        # print("=== Accuracy List ===")
+        # for i, class_ in enumerate(class_list):
+        #     print("{} | {}".format(class_, round(acc[i], 5)))
+            
+        print("=== Precision | Recall | F1 Score ===")
         for i, class_ in enumerate(class_list):
-            print("{} | {}".format(class_, round(f1_s[i], 5)))
-        # print("Total F1 : {}".format(f1_total))
+            print("{} |{}|{}|{}|".format(class_, round(prec[i], 5), round(rec[i], 5), round(f1_s[i], 5)))  
+    
+        print("Total F1 : {}".format(f1_total))
         
         # metric = metrics.classification_report(label_list, output_list, digits=10, target_names=class_list)
         # print(metric)
