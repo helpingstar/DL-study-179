@@ -12,8 +12,8 @@ from class_number import CLASS_NUMBER
 
 train_transform = A.Compose([
                             A.RandomBrightnessContrast(brightness_limit = 0.3, contrast_limit = 0.3, p=0.5),
-                            A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=180, p=0.5),
-                            A.ColorJitter(brightness=0, contrast=0, saturation=0.1, hue=0.1, always_apply=False, p=0.5),
+                            A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=180, p=0.8),
+                            A.ColorJitter(brightness=0, contrast=0, saturation=0.1, hue=0.1, p=0.5),
                             A.GaussNoise(var_limit = (0.0, 0.05), p=0.5),
                             A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
                             ToTensorV2()

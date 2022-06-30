@@ -21,6 +21,8 @@ class Manager():
         self.test_loader = dataloader["test"]
         self.device = device
         
+        self.multi_gpu = False
+        
         self.enable_log = False
         if neptune_instance is not None:
             self.enable_log = True
@@ -28,16 +30,33 @@ class Manager():
         
         self.logs = {}
         
+            
         self.init_optimizer()
         self.init_loss()
+        
+        if self.config["multi_gpu"]:
+            self.init_multigpu()
 
     def init_optimizer(self):
         self.optimizer = torch.optim.Adam([
             {'params' : self.model.parameters()}],
             lr = self.config["learning_rate"], betas=(0.99, 0.999))
+        self.scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer=self.optimizer,
+                                        lr_lambda=lambda epoch: 0.95 ** epoch)
+    
+    def init_multigpu(self):
+        NGPU = torch.cuda.device_count()
+        if NGPU > 1:
+            self.model = torch.nn.DataParallel(self.model, device_ids=list(range(NGPU)))
+            torch.multiprocessing.set_start_method('spawn')
+            self.multi_gpu = True
+    
     
     def init_loss(self):
         self.criterion = nn.CrossEntropyLoss().to(self.device)
+
+    # def focal_loss(self):
+    #     loss = nn.CrossEntropyLoss()
     
     def train(self):
         self.model.to(self.device)
@@ -63,7 +82,7 @@ class Manager():
                 print("Early Stop...")
                 break
     
-            # TODO : Learning Rate Schedular
+            self.scheduler.step(epoch)
         
             
     def train_loop(self, epoch):
@@ -240,5 +259,7 @@ class Manager():
         model_name = self.config["model_name"]
         model_path = os.path.join(save_path, model_name + ".pt")
         
-        torch.save(self.model, model_path)
-    
+        if self.multi_gpu:
+            torch.save(self.model.module, model_path)
+        else:
+            torch.save(self.model, model_path)

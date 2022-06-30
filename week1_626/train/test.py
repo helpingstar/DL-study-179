@@ -30,7 +30,7 @@ CFG = {
 
 if __name__ == "__main__":
     # Device Initialize
-    device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+    device = torch.device('cuda:1') if torch.cuda.is_available() else torch.device('cpu')
     
     # Dataset Initialize
     dataloader = {}
@@ -44,11 +44,11 @@ if __name__ == "__main__":
     dataloader["test"] = DataLoader(test_dataset, batch_size = CFG["test_batch_size"], shuffle=False, num_workers=0,  drop_last=False)
 
     # Model Import
-    model = ResNet50()
-    # model = SEResNet50()
+    # model = ResNet50()
+    model = SEResNet50()
     # model = CNN()
 
-    model = load_model(model, "./saved", "resnet", device)
+    model = load_model(model, "./saved", "seresnet", device)
     
     ## MULTI GPU    
     # NGPU = torch.cuda.device_count()

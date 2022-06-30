@@ -32,29 +32,26 @@ class ResNet(nn.Module):
         # 2048x7x7 -> 2048x1x1
         self.avg_pool = nn.AdaptiveAvgPool2d((1,1))
 
-        # 2048 -> 512 -> 10
+        # 2048 -> 128 -> 10
         self.tail_1 = nn.Sequential(
-                    nn.BatchNorm1d(512 * block.expansion),
+                    nn.Linear(512 * block.expansion, 256),
+                    nn.BatchNorm1d(256),
                     nn.Dropout(0.2),
-                    nn.LeakyReLU(),
-                    nn.Linear(512 * block.expansion, 512) 
+                    nn.ReLU(),
         )
 
         self.tail_2 = nn.Sequential(
-                nn.BatchNorm1d(512),
+                nn.Linear(256, 32),
+                nn.BatchNorm1d(32),
                 nn.Dropout(0.2),
-                nn.LeakyReLU(),
-                nn.Linear(512, 64)
-        )
-        
-        self.tail_3 = nn.Sequential(
-                nn.BatchNorm1d(64),
-                nn.Dropout(0.2),
-                nn.LeakyReLU(),
-                nn.Linear(64, 10)
+                nn.ReLU(),
         )
 
-        self.output = nn.Softmax(dim=1)
+        self.tail_3 = nn.Sequential(
+            nn.Linear(32, 10)
+        )
+        
+        self.output = nn.Softmax()
 
     def make_layer(self, block, out_channels, num_blocks, stride):
         layers = []
@@ -80,7 +77,6 @@ class ResNet(nn.Module):
         x = self.tail_3(x)
         
         x = self.output(x)
-
         return x
 
 class Tail(nn.Module):
