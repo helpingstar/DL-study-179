@@ -2,43 +2,67 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchsummary import summary
-
+from submodule.swish import Swish
 class MBConv(nn.Module):
-    def __init__(self, in_channel, out_channel, layers, kernel, exp_factor, downscaling = False) -> None:
+    def __init__(self, in_c, out_c, kernel, exp_f = 6, downscaling = False) -> None:
         super().__init__()
-        self.exp_factor = exp_factor
-                
-        self.in_c = in_channel
-        self.exp_c = in_channel * self.exp_factor
-        self.out_c = out_channel
         
-        self.layers = layers
+        initial_stride = 1
+        if downscaling:
+            initial_stride = 2
         
-        self.kernel = 3
-        self.stride = 1
+        same_kernel = 3
+        same_padding = 1
         if kernel == 5:
-            self.kernel = 5
-            self.stride = 2
+            same_kernel = 5
+            same_padding = 2
         
-        self.bottleneck = nn.Sequential(
-            nn.Conv2d(self.in_c, self.exp_c, kernel_size=1, stride=1, padding=0),
-            nn.BatchNorm2d(self.exp_c),
+        self.mbconv = nn.Sequential(
+            nn.Conv2d(in_c, in_c * exp_f, kernel_size=1, stride = initial_stride, padding = 0),
+            nn.BatchNorm2d(in_c * exp_f),
             nn.ReLU6(),
-            nn.Conv2d(self.exp_c, self.exp_c, kernel_size=self.kernel, stride=self.stride, padding=1, groups=self.exp_c),
-            nn.BatchNorm2d(self.exp_c),
+            nn.Conv2d(in_c * exp_f, in_c * exp_f, kernel_size = same_kernel, stride = 1, padding = same_padding, groups = in_c * exp_f),
+            nn.BatchNorm2d(in_c * exp_f),
             nn.ReLU6(),
-            nn.Conv2d(self.exp_c, self.out_c, kernel_size=1, stride=1, padding=0),
-            nn.BatchNorm2d(self.out_c)
-        )
+            nn.Conv2d(in_c * exp_f, out_c, kernel_size=1, stride=1, padding=0),
+            nn.BatchNorm2d(out_c)
+            )
+        
+    def forward(self, x):
+        
+        return self.mbconv(x)
+
+
+class ModuleBlock(nn.Module):
+    def __init__(self, in_c, out_c, layers, kernel, exp_f, downscaling = False) -> None:
+        super().__init__()
+        self.layers = layers
+
+        self.stage = nn.ModuleList([])
+        
+        if downscaling == False:
+            self.stage.append(MBConv(in_c, out_c, kernel, exp_f, False))
+        else:
+            self.stage.append(MBConv(in_c, out_c, kernel, exp_f, True))
+        
+        for i in range(1, layers):
+            self.stage.append(MBConv(out_c, out_c, kernel, exp_f, False))
         
         
     def forward(self, x):
-        shortcut = x
-        x = self.bottleneck(x)
-        output = x + shortcut
+        x = self.stage[0](x)
         
-        return output
-
+        for i in range(1, self.layers):
+            print("initial x")
+            print(x.shape)
+            shortcut = x
+            x = self.stage[i](x)
+            
+            print("after stage")
+            print(x.shape)
+            x = shortcut + x
+        
+        return x
 
 
 class EfficientNet(nn.Module):
@@ -46,27 +70,58 @@ class EfficientNet(nn.Module):
         super().__init__()
         # TODO : Implement Network
         
+        channel_list = [32, 16, 24, 40, 80, 112, 192, 320]
+        layer_list = [1, 2, 2, 3, 3, 4, 1]
+        kernel_list = [3, 3, 5, 3, 5, 5, 3]
+        expansion_list = [1, 6, 6, 6, 6, 6, 6]
+        downscaling_list = [False, True, True, True, False, True, False]
         
         self.head = nn.Sequential(
             nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU6()
         )
-            
-        self.MBConv1_3 = MBConv(in_channel = 32, out_channel = 16, 
-                                layers = 1, kernel = 3, exp_factor=1)
-        self.MBConv6_3 = MBConv(in_channel = 16, out_channel = 24, 
-                                layers = 2, kernel = 3, exp_factor=6)
-        self.MBConv6_5 = MBConv(in_channel = 24, out_channel = 40,
-                                layers = 2, kernel = 5, exp_factor=6, downscaling = True)
         
+        self.module_stage = nn.ModuleList([])
+        
+        for i in range(7):
+            self.module_stage.append(
+                    ModuleBlock(
+                        channel_list[i], channel_list[i+1], 
+                        layer_list[i], 
+                        kernel_list[i], 
+                        expansion_list[i],
+                        downscaling_list[i]
+                )
+            )
+            
+        self.final_stage = nn.Sequential(
+            nn.Conv2d(320, 1280, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(1280),
+            Swish()
+        )
+        
+        self.gap = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Linear(1280, 10)
+        self.softmax = nn.Softmax(dim = 1)
         
         
     def forward(self, x):
         # TODO : Implement Network
-        ## Sample Convolution, delete this
         x = self.head(x)
-        x = self.mbc_1(x)
+        for i in range(7):
+            print(i+1, " module input")
+            print(x.shape)
+            x = self.module_stage[i](x)
+            print(i+1, " module output")
+            print(x.shape)
+
+        x = self.final_stage(x)
+        x = self.gap(x)
+        x = x.view(x.size(0), -1)
+        x = self.fc(x)
+        x = self.softmax(x)
+        
         return x
     
 
@@ -74,15 +129,15 @@ class EfficientNet(nn.Module):
 
 
 if __name__ == "__main__":
-    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')    
+    device = torch.device('cuda:1') if torch.cuda.is_available() else torch.device('cpu')    
     
     batch_size = 4
-    input = torch.randn((batch_size, 24, 54, 54))
+    input = torch.randn((batch_size, 3, 224, 224))
     model = EfficientNet()
     output = model(input)
     
     print(output.shape)
     
-    model.to(device)
-    summary(model, (24, 54, 54))
+    # model.to(device)
+    # summary(model, (3, 224, 224))
         
