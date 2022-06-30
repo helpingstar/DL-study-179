@@ -10,6 +10,11 @@ from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
 from sklearn.metrics import f1_score
 from class_number import CLASS_NUMBER
+from sklearn.metrics import confusion_matrix
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 class Manager():
     def __init__(self, model, dataloader, device, config, neptune_instance = None):
@@ -130,7 +135,7 @@ class Manager():
         print("F1_Score : {} | Loss : {} ".format(round(f1_score, 5), round(loss, 5)))
 
         if self.enable_log:
-            lr = self.scheduler.get_lr()
+            lr = self.scheduler.get_last_lr()
             self.neptune["learning_rate"].log(lr)
             self.neptune["train/f1_score"].log(f1_score)
             self.neptune["train/loss"].log(loss)
@@ -257,6 +262,25 @@ class Manager():
         # print(metric)
         
         return f1_total
+    
+    def make_confusion_matrix(self, output_list, label_list):
+        cm = confusion_matrix(label_list, output_list)
+        
+        class_list = []
+        for class_ in CLASS_NUMBER:
+            class_list.append(class_)
+        
+        cm_df = pd.DataFrame(cm,
+                     index = class_list, 
+                     columns = class_list)
+        
+        plt.figure(figsize=(5,4))
+        sns.heatmap(cm_df, annot=True)
+        plt.title('Confusion Matrix')
+        plt.ylabel('Label Values')
+        plt.xlabel('Output Values')
+        plt.savefig("test_confusion_matrix.png")
+        
     
     def save_model(self):
         save_path = os.path.abspath(self.config["save_path"])
