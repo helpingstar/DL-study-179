@@ -234,10 +234,24 @@ class Manager():
         for class_name in CLASS_NUMBER:
             class_list.append(class_name)
         
-        # acc = accuracy_score(label_list, output_list)
-        # prec_avg = precision_score(label_list, output_list, average = 'macro')
-        # rec_avg = recall_score(label_list, output_list, average = 'macro')
+        acc_total = accuracy_score(label_list, output_list, average = 'macro')
+        acc = accuracy_score(label_list, output_list, average = None)
         
+        prec = precision_score(label_list, output_list, average = None)
+        rec = recall_score(label_list, output_list, average = None)
+        
+        print("=== Accuracy List ===")
+        for i, class_ in enumerate(class_list):
+            print("{} | {}".format(class_, round(acc[i], 5)))
+            
+        print("=== Precision List ===")
+        for i, class_ in enumerate(class_list):
+            print("{} | {}".format(class_, round(prec[i], 5)))
+            
+        print("=== Recall List ===")
+        for i, class_ in enumerate(class_list):
+            print("{} | {}".format(class_, round(rec[i], 5)))    
+             
         f1_total = f1_score(label_list, output_list, average = 'macro')
         f1_s = f1_score(label_list, output_list, average=None)
         
