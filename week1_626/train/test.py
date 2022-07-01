@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 from dataset import CustomDataset
 from train.model.resnet import ResNet50
 from train.model.seresnet import SEResNet50
+from train.model.efficient_net import EfficientNet_b0
 from train.model.simple_cnn import CNN
 from train.manager import Manager
 from model.loader import load_model
@@ -30,7 +31,7 @@ CFG = {
 
 if __name__ == "__main__":
     # Device Initialize
-    device = torch.device('cuda:1') if torch.cuda.is_available() else torch.device('cpu')
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     
     # Dataset Initialize
     dataloader = {}
@@ -48,7 +49,7 @@ if __name__ == "__main__":
     model = SEResNet50()
     # model = CNN()
 
-    model = load_model(model, "./saved", "seresnet", device)
+    model = load_model(model, "./saved", "seresnet_64", device)
     
     ## MULTI GPU    
     # NGPU = torch.cuda.device_count()

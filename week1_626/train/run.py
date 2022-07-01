@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 from dataset import CustomDataset
 from train.model.resnet import ResNet50
 from train.model.seresnet import SEResNet50
+from train.model.efficient_net import EfficientNet_b0
 from train.model.simple_cnn import CNN
 from train.manager import Manager
 
@@ -18,7 +19,7 @@ CFG = {
     "train_image_path" : "../train_img",
     "test_image_path" : "../test_img",
 
-    "train_batch_size" : 64,
+    "train_batch_size" : 128,
     "test_batch_size" : 4,
     
     "learning_rate" : 1e-4,
@@ -67,8 +68,9 @@ if __name__ == "__main__":
 
     # Model Import
     # model = ResNet50()
-    model = SEResNet50()
+    # model = SEResNet50()
     # model = CNN()
+    model = EfficientNet_b0()
     
     model.to(device)
     
