@@ -48,6 +48,7 @@ if __name__ == "__main__":
     # model = ResNet50()
     model = SEResNet50()
     # model = CNN()
+    # model = EfficientNet_b0()
 
     model = load_model(model, "./saved", "seresnet_64", device)
     

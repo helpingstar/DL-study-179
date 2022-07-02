@@ -11,6 +11,7 @@ from train.model.seresnet import SEResNet50
 from train.model.efficient_net import EfficientNet_b0
 from train.model.simple_cnn import CNN
 from train.manager import Manager
+from train.dataset import DataManger
 
 CFG = {
     "save_path" : "./saved",
@@ -56,16 +57,9 @@ if __name__ == "__main__":
     
     
     # Dataset Initialize
-    dataloader = {}
-    train_dataset = CustomDataset(config["train_image_path"], "train")
-    dataloader["train"] = DataLoader(train_dataset, batch_size = config["train_batch_size"], shuffle=True, num_workers=4, drop_last=True)
+    datamanager = DataManger(config)
+    # datamanager.small_class_init()
     
-    valid_dataset = CustomDataset(config["train_image_path"], "valid")
-    dataloader["valid"] = DataLoader(valid_dataset, batch_size = config["train_batch_size"], shuffle=False, num_workers=4, drop_last=True)
-    
-    test_dataset = CustomDataset(config["test_image_path"], "test")
-    dataloader["test"] = DataLoader(test_dataset, batch_size = config["test_batch_size"], shuffle=False, num_workers=4,  drop_last=False)
-
     # Model Import
     # model = ResNet50()
     # model = SEResNet50()
@@ -76,7 +70,7 @@ if __name__ == "__main__":
     
     torchsummary.summary(model, (3, 256, 256), batch_size = 16)
 
-    manager = Manager(model, dataloader, device, config, neptune_instance)
+    manager = Manager(model, datamanager, device, config, neptune_instance)
     manager.train()
     
                 

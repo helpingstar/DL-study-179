@@ -12,6 +12,7 @@ from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
 from sklearn.metrics import f1_score
 from class_number import CLASS_NUMBER
+from train.dataset import DataManger
 from sklearn.metrics import confusion_matrix
 
 import pandas as pd
@@ -19,13 +20,13 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 class Manager():
-    def __init__(self, model, dataloader, device, config, neptune_instance = None):
+    def __init__(self, model, datamanager : DataManger, device, config, neptune_instance = None):
         self.model = model
         self.config = config
         
-        self.train_loader = dataloader["train"]
-        self.valid_loader = dataloader["valid"]
-        self.test_loader = dataloader["test"]
+        self.datamanager = datamanager
+        self.load_small_data()
+        
         self.device = device
         
         self.multi_gpu = False
@@ -44,6 +45,11 @@ class Manager():
         if "multi_gpu" in self.config:
             if self.config["multi_gpu"]:
                 self.init_multigpu()
+
+    def init_dataloader(self):
+        self.train_loader = self.datamanager.get_loader("train")
+        self.valid_loader = self.datamanager.get_loader("valid")
+        self.test_loader = self.datamanager.get_loader("test")
 
     def init_optimizer(self):
         self.optimizer = torch.optim.Adam([
@@ -64,6 +70,14 @@ class Manager():
     def init_loss(self):
         self.criterion = nn.CrossEntropyLoss().to(self.device)
 
+    def load_all_data(self):
+        self.datamanager.all_class_init()
+        self.init_dataloader()
+        
+    def load_small_data(self):
+        self.datamanager.small_class_init()
+        self.init_dataloader()
+
     def focal_loss(self, output, label):
         alpha = 0.25
         gamma = 2
@@ -82,8 +96,13 @@ class Manager():
         no_update = 0
         
         for epoch in range(1,epochs+1):
+            if epoch == 100:
+                self.load_all_data()
+                
+            print("[Train]")
             self.train_loop(epoch)
             
+            print("[Valid]")
             val_loss = self.valid_loop(epoch)
 
             if val_loss < min_loss:
@@ -130,7 +149,7 @@ class Manager():
             total_output = np.append(total_output, model_output.cpu().detach().numpy(), axis = 0)
             total_label = np.append(total_label, label.cpu().detach().numpy(), axis = 0)
             
-            if step % 100 == 0:
+            if step % 50 == 0:
                 print("[{}] STEP : ({}/{}) | TRAIN LOSS : {} | Time : {}]".format(
                 epoch, step, steps, np.mean(tmp_train_loss), time.time()-prev_time))
                 sys.stdout.flush()
@@ -140,7 +159,8 @@ class Manager():
         total_output = np.argmax(total_output, axis = 1)
         total_label = np.argmax(total_label, axis = 1)
         
-        self.make_confusion_matrix(total_output, total_label, "train", epoch)
+        if epoch % 10 == 0:
+            self.make_confusion_matrix(total_output, total_label, "train", epoch)
         
         f1_score = self.calculation(total_output, total_label)
         total_train_loss = np.array(total_train_loss)
@@ -148,7 +168,7 @@ class Manager():
 
         self.logs["train_f1_score"] = f1_score
         self.logs["train_loss"] = loss
-        print("F1_Score : {} | Loss : {} ".format(round(f1_score, 5), round(loss, 5)))
+        print("F1_Score : {} | Loss : {} \n".format(round(f1_score, 5), round(loss, 5)))
 
         if self.enable_log:
             lr = self.scheduler.get_lr()
@@ -196,7 +216,8 @@ class Manager():
         total_output = np.argmax(total_output, axis = 1)
         total_label = np.argmax(total_label, axis = 1)
         
-        self.make_confusion_matrix(total_output, total_label, "valid", epoch)
+        if epoch % 10 == 0:
+            self.make_confusion_matrix(total_output, total_label, "valid", epoch)
         
         f1_score = self.calculation(total_output, total_label)
         total_valid_loss = np.array(total_valid_loss)
@@ -204,7 +225,7 @@ class Manager():
         
         self.logs["valid_f1_score"] = f1_score
         self.logs["valid_loss"] = loss
-        print("F1_Score : {} | Loss : {} ".format(round(f1_score, 5), round(loss, 5)))
+        print("F1_Score : {} | Loss : {} \n".format(round(f1_score, 5), round(loss, 5)))
         
         if self.enable_log:
             self.neptune["valid/f1_score"].log(f1_score)
@@ -259,9 +280,13 @@ class Manager():
         loss = np.mean(total_test_loss)
         print("F1_Score : {} | Loss : {} ".format(round(f1_score, 5), round(loss, 5)))
         
+        
     def calculation(self, output_list, label_list):        
         class_list = []
-        for class_name in CLASS_NUMBER:
+        
+        class_dict = self.datamanager.class_dict
+        
+        for class_name in class_dict:
             class_list.append(class_name)
         
         # acc = accuracy_score(label_list, output_list, average = None)
@@ -272,7 +297,7 @@ class Manager():
         f1_s = f1_score(label_list, output_list, average=None)
         
             
-        print("=== Precision | Recall | F1 Score ===")
+        print("Class | Precision | Recall | F1 Score |")
         for i, class_ in enumerate(class_list):
             print("{} |{}|{}|{}|".format(class_, round(prec[i], 5), round(rec[i], 5), round(f1_s[i], 5)))  
     
@@ -281,11 +306,13 @@ class Manager():
         return f1_total
     
     def make_confusion_matrix(self, output_list, label_list, type, epoch):
-        cm = confusion_matrix(label_list, output_list)
+        # cm = confusion_matrix(label_list, output_list)
         
         class_list = []
         for class_ in CLASS_NUMBER:
             class_list.append(class_)
+        
+        cm = self.custom_confusion_matrix(output_list, label_list, class_list)
         
         cm_df = pd.DataFrame(cm,
                      index = class_list, 
@@ -302,7 +329,23 @@ class Manager():
         
         plt_name = "./confusion_matrix/" + str(type) + "_" + str(epoch) + ".png"
         plt.savefig(plt_name)
+    
+    def custom_confusion_matrix(self, y_pred, y_true, labels):
+        N = len(labels)
         
+        confusion_matrix = []
+        for i in range(N):
+            temp_list = [0] * N
+            confusion_matrix.append(temp_list)
+        
+        for i in range(len(y_pred)):
+            pred = y_pred[i]
+            true = y_true[i]
+            
+            confusion_matrix[true][pred] += 1
+        
+        return np.array(confusion_matrix)
+    
     
     def save_model(self):
         save_path = os.path.abspath(self.config["save_path"])

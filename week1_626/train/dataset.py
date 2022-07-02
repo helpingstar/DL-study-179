@@ -3,12 +3,15 @@ import numpy as np
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from sklearn.utils import shuffle
 from torch.utils.data import Dataset
+from torch.utils.data import DataLoader
+
+
 from torchvision import transforms
 import albumentations as A
 from albumentations.pytorch import ToTensorV2    
 import torch
+from class_number import CLASS_NUMBER, SMALL_CLASS_NUMBER
 
-from class_number import CLASS_NUMBER
 
 train_transform = A.Compose([
                             A.RandomBrightnessContrast(brightness_limit = 0.3, contrast_limit = 0.3, p=0.5),
@@ -25,7 +28,7 @@ test_transform = A.Compose([
                             ])
 
 class CustomDataset(Dataset):
-    def __init__(self, base_path, type):
+    def __init__(self, base_path, type, class_dict):
         self.base_path = base_path
         base_path = os.path.abspath(base_path)
         class_list = os.listdir(base_path)
@@ -35,7 +38,7 @@ class CustomDataset(Dataset):
         
         data_collection = {}
         for class_name in class_list:
-            if class_name in CLASS_NUMBER:
+            if class_name in class_dict:
                 data_collection[class_name] = []
         
         for class_name in data_collection:
@@ -148,3 +151,45 @@ class CustomDataset(Dataset):
             return len(self.validset["path"])
         else:
             return len(self.testset["path"])
+
+
+class DataManger():
+    def __init__(self, config) -> None:
+        self.dataloader = {}
+        self.config = config
+        self.class_dict = None
+        self.all_class_init()
+        
+    def small_class_init(self):
+        self.class_dict = SMALL_CLASS_NUMBER
+        
+        train_dataset = CustomDataset(self.config["train_image_path"], "train", SMALL_CLASS_NUMBER)
+        self.dataloader["train"] = DataLoader(train_dataset, batch_size = self.config["train_batch_size"], shuffle=True, num_workers=4, drop_last=True)
+    
+        valid_dataset = CustomDataset(self.config["train_image_path"], "valid", SMALL_CLASS_NUMBER)
+        self.dataloader["valid"] = DataLoader(valid_dataset, batch_size = self.config["train_batch_size"], shuffle=False, num_workers=4, drop_last=True)
+    
+        test_dataset = CustomDataset(self.config["test_image_path"], "test", CLASS_NUMBER)
+        self.dataloader["test"] = DataLoader(test_dataset, batch_size = self.config["test_batch_size"], shuffle=False, num_workers=4,  drop_last=False)
+
+    def all_class_init(self):
+        self.class_dict = CLASS_NUMBER
+        train_dataset = CustomDataset(self.config["train_image_path"], "train", CLASS_NUMBER)
+        self.dataloader["train"] = DataLoader(train_dataset, batch_size = self.config["train_batch_size"], shuffle=True, num_workers=4, drop_last=True)
+    
+        valid_dataset = CustomDataset(self.config["train_image_path"], "valid", CLASS_NUMBER)
+        self.dataloader["valid"] = DataLoader(valid_dataset, batch_size = self.config["train_batch_size"], shuffle=False, num_workers=4, drop_last=True)
+    
+        test_dataset = CustomDataset(self.config["test_image_path"], "test", CLASS_NUMBER)
+        self.dataloader["test"] = DataLoader(test_dataset, batch_size = self.config["test_batch_size"], shuffle=False, num_workers=4,  drop_last=False)
+        
+
+    def get_loader(self, type):
+        if type == "train":
+            return self.dataloader["train"]
+        elif type == "valid":
+            return self.dataloader["valid"]
+        elif type == "test":
+            return self.dataloader["test"]
+        else:
+            return None

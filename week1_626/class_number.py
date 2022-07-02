@@ -10,3 +10,9 @@ CLASS_NUMBER = {
     "spider": 8,
     "squirrel": 9
 }
+
+SMALL_CLASS_NUMBER = {
+    "cat": 1,    
+    "elephant": 5,
+    "squirrel": 9
+}
