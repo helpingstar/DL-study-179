@@ -8,3 +8,4 @@ week1_626/test_img
 *__pycache__
 *.neptune
 *.pt
+*.png
