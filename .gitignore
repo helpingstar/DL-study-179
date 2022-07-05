@@ -9,3 +9,5 @@ week1_626/test_img
 *.neptune
 *.pt
 *.png
+*.csv
+*.txt
