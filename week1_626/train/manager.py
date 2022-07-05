@@ -25,7 +25,7 @@ class Manager():
         self.config = config
         
         self.datamanager = datamanager
-        self.load_small_data()
+        self.load_all_data()
         
         self.device = device
         
@@ -96,8 +96,10 @@ class Manager():
         no_update = 0
         
         for epoch in range(1,epochs+1):
-            if epoch == 100:
-                self.load_all_data()
+            # if ((epoch-1) % 50 == 0) and ((epoch-1) % 100 != 0):
+            #     self.load_all_data()
+            # elif ((epoch-1) % 100 == 0):
+            #     self.load_small_data()
                 
             print("[Train]")
             self.train_loop(epoch)

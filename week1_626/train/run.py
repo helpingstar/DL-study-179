@@ -25,7 +25,7 @@ CFG = {
     
     "learning_rate" : 1e-4,
     
-    "epoch" : 300   
+    "epoch" : 500   
 }
 
 if __name__ == "__main__":

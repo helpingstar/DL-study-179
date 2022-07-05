@@ -1,10 +1,11 @@
 import cv2, os, sys
+from matplotlib.pyplot import cla
 import numpy as np
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from sklearn.utils import shuffle
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
-
+import random
 
 from torchvision import transforms
 import albumentations as A
@@ -14,10 +15,10 @@ from class_number import CLASS_NUMBER, SMALL_CLASS_NUMBER
 
 
 train_transform = A.Compose([
-                            A.RandomBrightnessContrast(brightness_limit = 0.3, contrast_limit = 0.3, p=0.5),
-                            A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=180, p=0.8),
-                            A.ColorJitter(brightness=0, contrast=0, saturation=0.1, hue=0.1, p=0.5),
-                            A.GaussNoise(var_limit = (0.0, 0.05), p=0.5),
+                            A.RandomBrightnessContrast(brightness_limit = 0.3, contrast_limit = 0.3, p=1),
+                            A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=180, p=1),
+                            A.ColorJitter(brightness=0, contrast=0, saturation=0.1, hue=0.1, p=1),
+                            A.GaussNoise(var_limit = (0.0, 0.05), p=1),
                             A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
                             ToTensorV2()
                             ])
@@ -62,6 +63,10 @@ class CustomDataset(Dataset):
             self.validset["path"] = []
             self.validset["label"] = []
             
+            img_path_set = {}
+            label_set = {}
+            max_length = 0
+            
             for class_name in data_collection:
                 img_length = len(data_collection[class_name])
                 train_img_length = int(img_length * 0.8)
@@ -76,14 +81,36 @@ class CustomDataset(Dataset):
                 for i in range(len(train_img_path)):
                     train_label = np.append(train_label, one_hot_vector, axis = 0)
                 
+                img_path_set[class_name] = train_img_path
+                label_set[class_name] = train_label
+                max_length = max(max_length, len(train_img_path))
+                
                 valid_label = np.empty((0,10), dtype=np.int32)
                 for i in range(len(valid_img_path)):
                     valid_label = np.append(valid_label, one_hot_vector, axis = 0)
                 
-                self.trainset["path"].extend(train_img_path)
-                self.trainset["label"].extend(train_label)
+                # self.trainset["path"].extend(train_img_path)
+                # self.trainset["label"].extend(train_label)
                 self.validset["path"].extend(valid_img_path)
                 self.validset["label"].extend(valid_label)
+            
+            for class_name in data_collection:
+                train_img_path = img_path_set[class_name]
+                
+                if len(train_img_path) < max_length:
+                    over_sample_count = max_length - len(train_img_path)
+                    over_sample_list = [random.choice(train_img_path) for i in range(over_sample_count)]
+                    
+                    img_path_set[class_name].extend(over_sample_list)
+
+                    one_hot_vector = np.zeros((1, 10), dtype=np.int32)
+                    one_hot_vector[0][CLASS_NUMBER[class_name]] = 1
+                    
+                    for i in range(over_sample_count):
+                        label_set[class_name] = np.append(label_set[class_name], one_hot_vector, axis = 0)
+                    
+                self.trainset["path"].extend(img_path_set[class_name])
+                self.trainset["label"].extend(label_set[class_name])
 
             if self.type == "train":
                 print("------------")
